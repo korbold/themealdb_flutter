@@ -168,6 +168,56 @@ El código está documentado con comentarios en puntos clave:
 - Servicios y repositorios
 - Widgets principales
 
+## Decisiones técnicas
+
+- **Arquitectura de estado con Cubit (flutter_bloc)**
+  - Separación clara entre lógica y UI en `lib/features/**/cubit/`.
+  - Estados explícitos para carga/éxito/error facilitan testabilidad y mantenimiento.
+
+- **Estados tipados con Equatable**
+  - `PreferenceState` y variantes (`PreferenceInitial`, `PreferenceLoading`, `PreferenceSuccess`, `PreferenceDetailSuccess`, `PreferenceError`) en `lib/features/preferences/cubit/preference_state.dart`.
+  - Comparación por valor optimiza renderizados y evita bugs por referencias.
+
+- **Patrón Repositorio**
+  - `PreferenceRepository` (usado por los Cubits) aísla la fuente de datos local en `lib/core/repositories/`.
+  - Permite mocks y cambios de implementación sin afectar la capa de presentación.
+
+- **Separación Lista vs. Detalle**
+  - `PreferenceListCubit` para CRUD de colección y `PreferenceDetailCubit` para lectura por id (`lib/features/preferences/cubit/`).
+  - Cubits pequeños y específicos, menor acoplamiento.
+
+- **Inicialización temprana del estado global**
+  - `MultiBlocProvider` crea `PreferenceListCubit` con `..init()` y `lazy: false` en `lib/main.dart`.
+  - La lista se hidrata al arranque para evitar parpadeos de contenido vacío.
+
+- **Navegación declarativa con go_router**
+  - Uso de `MaterialApp.router` y `AppRouter.router` en `lib/main.dart` y `lib/core/routes/`.
+  - Deep linking y configuración de rutas más sencilla.
+
+- **Inyección de dependencias simple**
+  - Los Cubits aceptan `PreferenceRepository?` con valor por defecto interno (`lib/features/preferences/cubit/*.dart`).
+  - Facilita pruebas y reemplazo de implementaciones.
+
+- **Manejo de errores y observabilidad**
+  - Estado `PreferenceError` y logging con `ExceptionLogger.writeException` en `lib/features/preferences/view/preference_detail_page.dart`.
+  - UX con reintento y trazabilidad en errores.
+
+- **UX robusta ante recursos remotos**
+  - `Image.network` con `errorBuilder` y placeholders, confirmación antes de eliminar (`preference_detail_page.dart`).
+  - Evita fallos por imágenes rotas y acciones destructivas accidentales.
+
+- **Actualización reactiva tras mutaciones**
+  - `create/update/delete` terminan en `loadAllPreferences()` en `preference_list_cubit.dart` y `preference_cubit.dart`.
+  - Garantiza consistencia de la lista sin gestionar difs manuales.
+
+- **Modelado de dominio claro**
+  - `LocalPreferenceModel.fromApiMeal(...)` desacopla el modelo local de la respuesta de API (`lib/core/models/`).
+  - Permite evolucionar el contrato externo sin impactar la UI.
+
+- **Material 3 y theming por esquema**
+  - `ThemeData` con `ColorScheme.fromSeed` y `useMaterial3: true` en `lib/main.dart`.
+  - Estilo consistente y moderno con personalización sencilla.
+
 ## Autor
 
 Desarrollado como prueba técnica implementando todas las características solicitadas.
